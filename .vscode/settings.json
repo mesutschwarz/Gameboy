@@ -1,0 +1,15 @@
+{
+  "C_Cpp.default.configurationProvider": "ms-vscode.cpptools",
+  "C_Cpp.default.includePath": [
+    "${workspaceFolder}/src",
+    "/opt/gbdk/include",
+    "/opt/gbdk/include/**"
+  ],
+  "C_Cpp.default.defines": [
+    "__TARGET_gb",
+    "__PORT_sm83"
+  ],
+  "files.associations": {
+    "*.h": "c"
+  }
+}
