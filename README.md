@@ -1,4 +1,4 @@
-# Gameboy
+# Game Boy
 
 Develop Game Boy games with **GBDK** fully on GitHub:
 
