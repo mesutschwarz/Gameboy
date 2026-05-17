@@ -1,21 +1,38 @@
-name: Build Game Boy ROM
+name: Build and Deploy Game Boy ROM
 
 on:
   push:
+    branches:
+      - main # Triggers the workflow on push events to the main branch
   pull_request:
+    branches:
+      - main # Triggers the workflow on pull requests targeting the main branch
+  workflow_dispatch: # Allows manual triggering of the workflow from the GitHub UI
 
+# Sets permissions of the GITHUB_TOKEN to allow GitHub Pages deployment
 permissions:
   contents: read
+  pages: write
+  id-token: write
+
+# Allow only one concurrent deployment, skipping runs queued between the run in-progress and latest queued.
+# However, do NOT cancel in-progress runs as we want to allow these production deployments to complete.
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
-  build:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps:deployment.outputs.page_url }}
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Install GBDK
+      - name: Install GBDK (Game Boy Developer's Kit)
         env:
           GBDK_VERSION: 4.4.0
         run: |
@@ -24,11 +41,37 @@ jobs:
           sudo mkdir -p /opt/gbdk
           sudo tar -xzf /tmp/gbdk.tar.gz -C /opt/gbdk --strip-components=1
 
-      - name: Build
+      - name: Compile ROM via Make
         run: make
 
-      - name: Upload ROM
+      - name: Archive Compiled ROM Artifact
         uses: actions/upload-artifact@v4
         with:
           name: gameboy-rom
           path: build/gameboy.gb
+
+      - name: Fetch Emulator and Prepare Pages Deployment
+        run: |
+          # Create a temporary distribution directory for GitHub Pages
+          mkdir -p dist
+          
+          # Clone the web emulator repository transiently into a temporary workspace
+          git clone --depth 1 https://github.com/juchi/gameboy.js.git tmp-emulator
+          
+          # Copy all web-facing emulator assets into the deployment directory
+          cp -r tmp-emulator/* dist/
+          
+          # Inject the newly compiled ROM directly alongside the emulator assets
+          cp build/gameboy.gb dist/
+          
+          # Clean up the temporary cloned emulator folder to keep the workspace pristine
+          rm -rf tmp-emulator
+
+      - name: Upload Static Web Assets to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist/ # Points to the temporary combined folder (Emulator + ROM)
+
+      - name: Deploy Live Preview to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
